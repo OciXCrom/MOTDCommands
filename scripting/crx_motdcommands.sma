@@ -27,7 +27,7 @@ public cmdMotd(id)
 		read_argv(1, szArgs, charsmax(szArgs))
 		remove_quotes(szArgs)
 		
-		new szFile[32]
+		new szFile[128]
 		TrieGetString(g_tMotds, szArgs, szFile, charsmax(szFile))
 		show_motd(id, szFile)
 	}
