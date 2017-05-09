@@ -44,7 +44,7 @@ fileRead()
 	
 	if(iFilePointer)
 	{
-		new szData[65], szCommand[32], szFile[32]
+		new szData[160], szFile[128], szCommand[32]
 		
 		while(!feof(iFilePointer))
 		{
