@@ -1,17 +1,20 @@
 #include <amxmodx>
 #include <amxmisc>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 #define MAX_MOTD_SIZE 1536
 #define MAX_CMD_SIZE 32
 
+new g_szMap[32]
 new Trie:g_tMotds
+new const g_szAll[] = "#all"
 new const g_szSayStuff[2][] = { "say ", "say_team " }
 
 public plugin_init()
 {
 	register_plugin("MOTD Commands", PLUGIN_VERSION, "OciXCrom")
 	register_cvar("@MOTDCommands", PLUGIN_VERSION, FCVAR_SERVER|FCVAR_SPONLY|FCVAR_UNLOGGED)
+	get_mapname(g_szMap, charsmax(g_szMap))
 	g_tMotds = TrieCreate()
 	fileRead()
 }
@@ -46,24 +49,52 @@ fileRead()
 	
 	if(iFilePointer)
 	{
-		new szData[MAX_MOTD_SIZE + MAX_CMD_SIZE], szMotd[MAX_MOTD_SIZE], szCommand[MAX_CMD_SIZE]
+		new szData[MAX_MOTD_SIZE + MAX_CMD_SIZE], szMotd[MAX_MOTD_SIZE], szCommand[MAX_CMD_SIZE], bool:bRead = true, iSize
 		
 		while(!feof(iFilePointer))
 		{
 			fgets(iFilePointer, szData, charsmax(szData))
 			trim(szData)
 			
-			if(szData[0] == EOS || szData[0] == ';')
-				continue
-				
-			strtok(szData, szCommand, charsmax(szCommand), szMotd, charsmax(szMotd), '=')
-			trim(szCommand); trim(szMotd)
-			
-			TrieSetString(g_tMotds, szCommand, szMotd)
-			format(szCommand, charsmax(szCommand), "say %s", szCommand)
-			register_clcmd(szCommand, "cmdMotd")
-			replace(szCommand, charsmax(szCommand), "say", "say_team")
-			register_clcmd(szCommand, "cmdMotd")
+			switch(szData[0])
+			{
+				case EOS, ';': continue
+				case '[':
+				{
+					iSize = strlen(szData)
+					
+					if(szData[iSize - 1] == ']')
+					{
+						szData[0] = ' '
+						szData[iSize - 1] = ' '
+						trim(szData)
+						
+						if(contain(szData, "*") != -1)
+						{
+							strtok(szData, szCommand, charsmax(szCommand), szMotd, charsmax(szMotd), '*')
+							copy(szMotd, strlen(szCommand), g_szMap)
+							bRead = equal(szMotd, szCommand) ? true : false
+						}
+						else
+							bRead = equal(szData, g_szAll) || equali(szData, g_szMap)
+					}
+					else continue
+				}
+				default:
+				{
+					if(!bRead)
+						continue
+						
+					strtok(szData, szCommand, charsmax(szCommand), szMotd, charsmax(szMotd), '=')
+					trim(szCommand); trim(szMotd)
+					
+					TrieSetString(g_tMotds, szCommand, szMotd)
+					format(szCommand, charsmax(szCommand), "say %s", szCommand)
+					register_clcmd(szCommand, "cmdMotd")
+					replace(szCommand, charsmax(szCommand), "say", "say_team")
+					register_clcmd(szCommand, "cmdMotd")
+				}
+			}
 		}
 		
 		fclose(iFilePointer)
